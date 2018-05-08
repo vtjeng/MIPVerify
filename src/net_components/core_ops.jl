@@ -37,14 +37,19 @@ bound_delta_f = Dict(
     lower_bound_type => (b, b_0) -> b - b_0,
     upper_bound_type => (b, b_0) -> b_0 - b
 )
+bound_operator = Dict(
+    lower_bound_type => >=,
+    upper_bound_type => <=
+)
 
 function tight_bound(
     x::JuMPLinearType, 
     nta::Nullable{TighteningAlgorithm},
-    bound_type::BoundType)
+    bound_type::BoundType,
+    for_relu::Bool)
     tightening_algorithm = get_tightening_algorithm(x, nta)
     b_0 = bound_f[bound_type](x)
-    if tightening_algorithm == interval_arithmetic || is_constant(x)
+    if tightening_algorithm == interval_arithmetic || is_constant(x) || (for_relu && bound_operator[bound_type](b_0, 0))
         return b_0
     end
     relaxation = (tightening_algorithm == lp)
@@ -71,14 +76,16 @@ end
 
 function tight_upperbound(
     x::JuMPLinearType; 
-    nta::Nullable{TighteningAlgorithm} = Nullable{TighteningAlgorithm}())
-    tight_bound(x, nta, upper_bound_type)
+    nta::Nullable{TighteningAlgorithm} = Nullable{TighteningAlgorithm}(),
+    for_relu::Bool = true)
+    tight_bound(x, nta, upper_bound_type, for_relu)
 end
 
 function tight_lowerbound(
     x::JuMPLinearType;
-    nta::Nullable{TighteningAlgorithm} = Nullable{TighteningAlgorithm}())
-    tight_bound(x, nta, lower_bound_type)
+    nta::Nullable{TighteningAlgorithm} = Nullable{TighteningAlgorithm}(),
+    for_relu::Bool = true)
+    tight_bound(x, nta, lower_bound_type, for_relu)
 end
 
 function log_gap(m::JuMP.Model)
@@ -274,9 +281,9 @@ function maximum(xs::AbstractArray{T})::JuMP.AffExpr where {T<:JuMPLinearType}
     # TODO (vtjeng): [PERF] skip calculating lowerbound for index if upperbound is lower than
     # largest current lowerbound.
     p1 = Progress(length(xs), desc="  Calculating upper bounds: ")
-    us = map(x_i -> (next!(p1); tight_upperbound(x_i)), xs)
+    us = map(x_i -> (next!(p1); tight_upperbound(x_i, for_relu=false)), xs)
     p2 = Progress(length(xs), desc="  Calculating lower bounds: ")
-    ls = map(x_i -> (next!(p2); tight_lowerbound(x_i)), xs)
+    ls = map(x_i -> (next!(p2); tight_lowerbound(x_i, for_relu=false)), xs)
 
     l = Base.maximum(ls)
     u = Base.maximum(us)
