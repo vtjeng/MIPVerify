@@ -47,11 +47,7 @@ Calculates a tight bound of type `bound_type` on the variable `x` using the spec
 tightening algorithm `nta`.
 
 If an upper bound is proven to be below cutoff, or a lower bound is proven to above cutoff,
-<<<<<<< HEAD
 the algorithm returns early with whatever value was found.
-=======
-the algorithm returns with whatever value was found.
->>>>>>> f845df7470b17a39c7e4ceef70b6af8b96ed47eb
 """
 function tight_bound(
     x::JuMPLinearType, 
