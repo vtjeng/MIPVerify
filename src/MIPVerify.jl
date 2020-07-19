@@ -153,6 +153,13 @@ function find_adversarial_example(
             else
                 error("Unknown adversarial_example_objective $adversarial_example_objective")
             end
+
+            # Provide input warm start
+            fill!(m.colVal, NaN)
+            for (v, v_val) in zip(d[:PerturbedInput], input)
+                setvalue(v, v_val)
+            end
+
             setsolver(m, main_solver)
             solve_time = @elapsed begin
                 d[:SolveStatus] = solve(m)
